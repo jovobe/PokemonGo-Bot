@@ -15,21 +15,28 @@ gmaps = googlemaps.Client(key=GOOGLEMAPS_KEY)
 rest_time=1
 
 def work_on_cell(cell,api,position,config):
-	print cell
-	if 'catchable_pokemons' in cell:
-		print 'has pokemon'
-		for pokemon in cell['catchable_pokemons']:
-			print('catchable_pokemon {}'.format(pokemon))
-			encount_and_catch_pokemon(pokemon,api,position,config)
-	if 'wild_pokemons' in cell:
-		for pokemon in cell['wild_pokemons']:
-			print('wild_pokemons {}'.format(pokemon))
-			encount_and_catch_pokemon(pokemon,api,position,config)
-			#encounter_id=pokemon['encounter_id']
-			#api.encounter(encounter_id=encounter_id,player_latitude=position[0],player_longitude=position[1])
-			#response_dict = api.call()
-			#print('Response dictionary: \n\r{}'.format(json.dumps(response_dict, indent=2)))
-			"""
+    """
+
+print cell
+
+
+if 'catchable_pokemons' in cell:
+    print 'has pokemon'
+    for pokemon in cell['catchable_pokemons']:
+        print('catchable_pokemon {}'.format(pokemon))
+        encount_and_catch_pokemon(pokemon,api,position,config)
+if 'wild_pokemons' in cell:
+    for pokemon in cell['wild_pokemons']:
+        print('wild_pokemons {}'.format(pokemon))
+        encount_and_catch_pokemon(pokemon,api,position,config)
+        #encounter_id=pokemon['encounter_id']
+        #api.encounter(encounter_id=encounter_id,player_latitude=position[0],player_longitude=position[1])
+        #response_dict = api.call()
+        #print('Response dictionary: \n\r{}'.format(json.dumps(response_dict, indent=2)))
+
+        """
+
+    """
 	if 'spawn_points' in cell:
 		for spawn_point in cell['spawn_points']:
 			print spawn_point
@@ -42,8 +49,8 @@ def work_on_cell(cell,api,position,config):
 			time.sleep(2)
 			"""
 
-	if config.spinstop:
-		if 'forts' in cell:
+    if config.spinstop:
+        if 'forts' in cell:
 			for fort in cell['forts']:
 				if 'type' in fort:
 					print('This is PokeStop')

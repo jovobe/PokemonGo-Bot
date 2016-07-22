@@ -182,6 +182,12 @@ def main():
             api.get_map_objects(latitude=f2i(position[0]), longitude=f2i(position[1]), since_timestamp_ms=timestamp, cell_id=cellid)
 
             response_dict = api.call()
+
+            # print('Response dictionary: \n\r{}'.format(json.dumps(response_dict, indent=2)))
+            # return
+
+
+
             #print('Response dictionary: \n\r{}'.format(json.dumps(response_dict, indent=2)))
             if response_dict and 'responses' in response_dict and \
                 'GET_MAP_OBJECTS' in response_dict['responses'] and \
@@ -191,8 +197,19 @@ def main():
                 print('got the maps')
                 map_cells=response_dict['responses']['GET_MAP_OBJECTS']['map_cells']
                 print('map_cells are {}'.format(len(map_cells)))
-                for cell in map_cells:
-                    working.work_on_cell(cell,api,position,config)
+
+                type = lambda fort: 'stop' if 'type' in fort else 'gym'
+                with open('pois.csv', 'w+') as f:
+
+                    for cell in map_cells:
+
+                        if 'forts' in cell:
+                            for fort in cell['forts']:
+                                f.write('{},{},{}\n'.format(fort['latitude'], fort['longitude'], type(fort)))
+
+                        #working.work_on_cell(cell,api,position,config)
+
+                return
             time.sleep(10)
                         #print(fort)
 
