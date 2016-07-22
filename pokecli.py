@@ -62,14 +62,15 @@ def init_config():
     parser.add_argument("-c", "--cp",help="Set CP less than to transfer(DEFAULT 100)",type=int,default=100)
     parser.add_argument("-k", "--gmapkey",help="Set Google Maps API KEY",type=str,default=None)
     parser.add_argument("--maxsteps",help="Set the steps around your initial location(DEFAULT 5 mean 25 cells around your location)",type=int,default=5)
-    parser.add_argument("-d", "--debug", help="Debug Mode", action='store_true')
-    parser.add_argument("-t", "--test", help="Only parse the specified location", action='store_true')
-    parser.set_defaults(DEBUG=False, TEST=False)
+    parser.add_argument("-d", "--debug", help="Debug Mode", action='store_true', default=False)
+    parser.add_argument("-t", "--test", help="Only parse the specified location", action='store_true', default=False)
     config = parser.parse_args()
 
     # Passed in arguments shoud trump
     for key in config.__dict__:
-        if key in load and config.__dict__[key] == None:
+        if key in load and parser.get_default(key) != load[key]:
+            if isinstance(load[key], unicode):
+                load[key] = load[key].encode('utf8')
             config.__dict__[key] = load[key]
 
     if config.auth_service not in ['ptc', 'google']:
