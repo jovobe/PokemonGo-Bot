@@ -35,3 +35,5 @@
  * BartKoppelmans
  * phil9l
  * VictorChen
+ * AlvaroGzP
+ * fierysolid
