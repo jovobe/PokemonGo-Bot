@@ -17,11 +17,12 @@ class SeenFortWorker(object):
         self.bot = bot
         self.position = bot.position
         self.config = bot.config
-        self.pokemon_list = bot.pokemon_list
         self.item_list = bot.item_list
+        self.pokemon_list = bot.pokemon_list
         self.inventory = bot.inventory
-        self.pokeball_inventory = bot.pokeball_inventory
+        self.current_inventory = bot.current_inventory
         self.item_inventory_count = bot.item_inventory_count
+        self.metrics = bot.metrics
         self.rest_time = 50
 
     def work(self):
@@ -82,6 +83,7 @@ class SeenFortWorker(object):
 
                 items_awarded = spin_details.get('items_awarded', False)
                 if items_awarded:
+                    self.bot.latest_inventory = None
                     tmp_count_items = {}
                     for item in items_awarded:
                         item_id = item['item_id']
@@ -92,32 +94,7 @@ class SeenFortWorker(object):
 
                     for item_id, item_count in tmp_count_items.iteritems():
                         item_name = self.item_list[str(item_id)]
-
                         logger.log('- ' + str(item_count) + "x " + item_name + " (Total: " + str(self.bot.item_inventory_count(item_id)) + ")", 'yellow')
-
-
-                        # RECYCLING UNWANTED ITEMS
-                        id_filter = self.config.item_filter.get(str(item_id), 0)
-                        if id_filter is not 0:
-                            id_filter_keep = id_filter.get('keep',20)
-                        new_bag_count = self.bot.item_inventory_count(item_id)
-                        if str(item_id) in self.config.item_filter and new_bag_count > id_filter_keep:
-                            #RECYCLE_INVENTORY_ITEM
-                            items_recycle_count = new_bag_count - id_filter_keep
-                            logger.log("-- Recycling " + str(items_recycle_count) + "x " + item_name + " to match filter "+ str(id_filter_keep) +"...", 'green')
-                            response_dict_recycle = self.bot.drop_item(item_id=item_id, count=items_recycle_count)
-
-                            result = 0
-                            if response_dict_recycle and \
-                                'responses' in response_dict_recycle and \
-                                'RECYCLE_INVENTORY_ITEM' in response_dict_recycle['responses'] and \
-                                'result' in response_dict_recycle['responses']['RECYCLE_INVENTORY_ITEM']:
-                                result = response_dict_recycle['responses']['RECYCLE_INVENTORY_ITEM']['result']
-
-                            if result is 1: # Request success
-                                logger.log("-- Recycled " + item_name + "!", 'green')
-                            else:
-                                logger.log("-- Recycling " + item_name + "has failed!", 'red')
                 else:
                     logger.log("[#] Nothing found.", 'yellow')
 
@@ -151,8 +128,7 @@ class SeenFortWorker(object):
                         format_time((pokestop_cooldown / 1000) -
                                     seconds_since_epoch)))
             elif spin_result == 4:
-                logger.log("Inventory is full, switching to catch mode...", 'red')
-                self.config.mode = 'poke'
+                logger.log("Inventory is full", 'red')
             else:
                 logger.log("Unknown spin result: " + str(spin_result), 'red')
 
@@ -165,16 +141,17 @@ class SeenFortWorker(object):
                 logger.log('Possibly searching too often - taking a short rest :)', 'yellow')
                 self.bot.fort_timeouts[self.fort["id"]] = (time.time() + 300) * 1000  # Don't spin for 5m
                 return 11
-        sleep(8)
+        sleep(2)
         return 0
 
     def catch_pokemon(self, pokemon):
-        worker = PokemonCatchWorker(pokemon, self)
+        worker = PokemonCatchWorker(pokemon, self.bot)
         return_value = worker.work()
 
-        if return_value == PokemonCatchWorker.BAG_FULL:
-            worker = InitialTransferWorker(self)
-            worker.work()
+        # Disabled for now, importing InitialTransferWorker fails.
+        # if return_value == PokemonCatchWorker.BAG_FULL:
+        #    worker = InitialTransferWorker(self)
+        #    worker.work()
 
         return return_value
 

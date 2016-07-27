@@ -16,8 +16,7 @@ class EvolveAllWorker(object):
         if not self._should_run():
             return
 
-        self.api.get_inventory()
-        response_dict = self.api.call()
+        response_dict = self.bot.get_inventory()
         cache = {}
 
         try:
@@ -56,11 +55,14 @@ class EvolveAllWorker(object):
         # Will skip evolving if user wants to use an egg and there is none
         skip_evolves = False
 
+        if self.config.evolve_all:
+            return skip_evolves
+
         # Pop lucky egg before evolving to maximize xp gain
         use_lucky_egg = self.config.use_lucky_egg
         lucky_egg_count = self.bot.item_inventory_count(Item.ITEM_LUCKY_EGG.value)
 
-        if  use_lucky_egg and lucky_egg_count > 0:
+        if use_lucky_egg and lucky_egg_count > 0:
             logger.log('Using lucky egg ... you have {}'
                        .format(lucky_egg_count))
             response_dict_lucky_egg = self.bot.use_lucky_egg()
@@ -82,8 +84,7 @@ class EvolveAllWorker(object):
         return skip_evolves
 
     def _release_evolved(self, release_cand_list_ids):
-        self.api.get_inventory()
-        response_dict = self.api.call()
+        response_dict = self.bot.get_inventory()
         cache = {}
 
         try:
@@ -106,7 +107,7 @@ class EvolveAllWorker(object):
                     # Transfering Pokemon
                     self.transfer_pokemon(pokemon_id)
                     logger.log(
-                        '[#] {} has been exchanged for candy!'.format(pokemon_name), 'green')
+                        '[#] {} has been exchanged for candy!'.format(pokemon_name), 'red')
 
     def _sort_by_cp_iv(self, inventory_items):
         pokemons1 = []
@@ -177,8 +178,7 @@ class EvolveAllWorker(object):
         response_dict = self.api.call()
 
     def count_pokemon_inventory(self):
-        self.api.get_inventory()
-        response_dict = self.api.call()
+        response_dict = self.bot.get_inventory()
         id_list = []
         return self.counting_pokemon(response_dict, id_list)
 
