@@ -41,3 +41,13 @@
  * surceis
  * SpaceWhale
  * klingan
+ * reddivision
+ * DayBr3ak
+ * kbinani
+ * mhdasding
+ * MFizz
+ * NamPNQ
+ * z4ppy.bbc
+ * matheussampaio
+ * Abraxas000
+ * lucasfevi

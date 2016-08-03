@@ -1,23 +1,32 @@
-import socketio
 import logging
-from eventlet import wsgi
-from flask import Flask, render_template
-from pokemongo_bot.event_manager import EventManager
-from pokemongo_bot.event_handlers import LoggingHandler
+
+import socketio
+from flask import Flask
+
 
 sio = socketio.Server(async_mode='eventlet', logging=logging.NullHandler)
 app = Flask(__name__)
 
-event_manager = EventManager()
-event_manager.add_handler(LoggingHandler())
-event_manager.register_event(
-    "websocket_client_connected",
-)
+# client asks for data
+@sio.on('remote:send_request')
+def remote_control(sid, command):
+    if not 'account' in command:
+        return False
+    bot_name = command.pop('account')
+    event = 'bot:process_request:{}'.format(bot_name)
+    sio.emit(event, data=command)
+
+# sending bot response to client
+@sio.on('bot:send_reply')
+def request_reply(sid, response):
+    event = response.pop('command')
+    account = response.pop('account')
+    event = "{}:{}".format(event, account)
+    sio.emit(event, response)
 
 @sio.on('bot:broadcast')
 def bot_broadcast(sid, env):
-    sio.emit(env['event'], data=env['data'])
-
-@sio.on('disconnect')
-def disconnect(sid):
-    print('disconnect ', sid)
+    event = env.pop('event')
+    account = env.pop('account')
+    event_name = "{}:{}".format(event, account)
+    sio.emit(event_name, data=env['data'])
