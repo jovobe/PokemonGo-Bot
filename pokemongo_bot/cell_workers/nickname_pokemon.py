@@ -1,7 +1,9 @@
 from pokemongo_bot.human_behaviour import sleep
-from pokemongo_bot.cell_workers.base_task import BaseTask
+from pokemongo_bot.base_task import BaseTask
 
 class NicknamePokemon(BaseTask):
+    SUPPORTED_TASK_API_VERSION = 1
+
     def initialize(self):
         self.template = self.config.get('nickname_template','').lower().strip()
         if self.template == "{name}":
@@ -25,7 +27,7 @@ class NicknamePokemon(BaseTask):
             except KeyError:
                 pass
             else:
-                if not pokemon.get('is_egg',False):
+                if not pokemon.get('is_egg',False) and not (pokemon.get('favorite', 0) == 1 and self.config.get('dont_nickname_favorite',False)):
                     pokemon_data.append(pokemon)
         return pokemon_data
 

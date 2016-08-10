@@ -1,8 +1,10 @@
 from pokemongo_bot.human_behaviour import sleep
-from pokemongo_bot.cell_workers.base_task import BaseTask
+from pokemongo_bot.base_task import BaseTask
 
 
 class IncubateEggs(BaseTask):
+    SUPPORTED_TASK_API_VERSION = 1
+
     last_km_walked = 0
 
     def initialize(self):
@@ -47,6 +49,8 @@ class IncubateEggs(BaseTask):
 
     def _apply_incubators(self):
         for incubator in self.ready_incubators:
+            if incubator.get('used', False):
+                continue
             for egg in self.eggs:
                 if egg["used"] or egg["km"] == -1:
                     continue

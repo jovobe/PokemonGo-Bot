@@ -2,7 +2,7 @@ import ctypes
 from sys import stdout, platform as _platform
 from datetime import datetime, timedelta
 
-from pokemongo_bot.cell_workers.base_task import BaseTask
+from pokemongo_bot.base_task import BaseTask
 from pokemongo_bot.worker_result import WorkerResult
 from pokemongo_bot.tree_config_builder import ConfigException
 
@@ -18,11 +18,25 @@ class UpdateTitleStats(BaseTask):
         "type": "UpdateTitleStats",
         "config": {
             "min_interval": 10,
-            "stats": ["uptime", "km_walked", "level_stats", "xp_earned", "xp_per_hour"]
+            "stats": ["login", "uptime", "km_walked", "level_stats", "xp_earned", "xp_per_hour"],
         }
     }
 
+    You can set a logging on terminal mode like this:
+
+    Example logging on console (and disabling title change):
+    {
+        "type": "UpdateTitleStats",
+        "config": {
+            "min_interval": 10,
+            "stats": ["login", "uptime", "km_walked", "level_stats", "xp_earned", "xp_per_hour"],
+            "terminal_log": true,
+            "terminal_title": false
+        }
+    }
     Available stats :
+    - login : The account login (from the credentials).
+    - username : The trainer name (asked at first in-game connection).
     - uptime : The bot uptime.
     - km_walked : The kilometers walked since the bot started.
     - level : The current character's level.
@@ -49,9 +63,8 @@ class UpdateTitleStats(BaseTask):
     stats : An array of stats to display and their display order (implicitly),
             see available stats above.
     """
+    SUPPORTED_TASK_API_VERSION = 1
 
-    DEFAULT_MIN_INTERVAL = 10
-    DEFAULT_DISPLAYED_STATS = []
 
     def __init__(self, bot, config):
         """
@@ -64,10 +77,14 @@ class UpdateTitleStats(BaseTask):
         super(UpdateTitleStats, self).__init__(bot, config)
 
         self.next_update = None
-        self.min_interval = self.DEFAULT_MIN_INTERVAL
-        self.displayed_stats = self.DEFAULT_DISPLAYED_STATS
 
-        self._process_config()
+        self.min_interval = int(self.config.get('min_interval', 120))
+        self.displayed_stats = self.config.get('stats', [])
+        self.terminal_log = self.config.get('terminal_log', False)
+        self.terminal_title = self.config.get('terminal_title', True)
+
+        self.bot.event_manager.register_event('update_title', parameters=('title',))
+        self.bot.event_manager.register_event('log_stats',parameters=('title',))
 
     def initialize(self):
         pass
@@ -84,7 +101,12 @@ class UpdateTitleStats(BaseTask):
         # If title is empty, it couldn't be generated.
         if not title:
             return WorkerResult.SUCCESS
-        self._update_title(title, _platform)
+
+        if self.terminal_title:
+            self._update_title(title, _platform)
+
+        if self.terminal_log:
+            self._log_on_terminal(title)
         return WorkerResult.SUCCESS
 
     def _should_display(self):
@@ -94,6 +116,16 @@ class UpdateTitleStats(BaseTask):
         :rtype: bool
         """
         return self.next_update is None or datetime.now() >= self.next_update
+
+    def _log_on_terminal(self, title):
+        self.emit_event(
+            'log_stats',
+            formatted="{title}",
+            data={
+                'title': title
+            }
+        )
+        self.next_update = datetime.now() + timedelta(seconds=self.min_interval)
 
     def _update_title(self, title, platform):
         """
@@ -106,11 +138,21 @@ class UpdateTitleStats(BaseTask):
         :rtype: None
         :raise: RuntimeError: When the given platform isn't supported.
         """
-        if platform == "linux" or platform == "linux2"\
-                or platform == "cygwin":
+
+        self.emit_event(
+            'update_title',
+            formatted="{title}",
+            data={
+                'title': title
+            }
+        )
+
+        if platform == "linux" or platform == "linux2" or platform == "cygwin":
             stdout.write("\x1b]2;{}\x07".format(title))
+            stdout.flush()
         elif platform == "darwin":
             stdout.write("\033]0;{}\007".format(title))
+            stdout.flush()
         elif platform == "win32":
             ctypes.windll.kernel32.SetConsoleTitleA(title)
         else:
@@ -118,14 +160,6 @@ class UpdateTitleStats(BaseTask):
 
         self.next_update = datetime.now() + timedelta(seconds=self.min_interval)
 
-    def _process_config(self):
-        """
-        Fetches the configuration for this worker and stores the values internally.
-        :return: Nothing.
-        :rtype: None
-        """
-        self.min_interval = int(self.config.get('min_interval', self.DEFAULT_MIN_INTERVAL))
-        self.displayed_stats = self.config.get('stats', self.DEFAULT_DISPLAYED_STATS)
 
     def _get_stats_title(self, player_stats):
         """
@@ -144,6 +178,9 @@ class UpdateTitleStats(BaseTask):
         metrics = self.bot.metrics
         metrics.capture_stats()
         runtime = metrics.runtime()
+        login = self.bot.config.username
+        player_data = self.bot.player_data
+        username = player_data.get('username', '?')
         distance_travelled = metrics.distance_travelled()
         current_level = int(player_stats.get('level', 0))
         prev_level_xp = int(player_stats.get('prev_level_xp', 0))
@@ -171,6 +208,8 @@ class UpdateTitleStats(BaseTask):
 
         # Create stats strings.
         available_stats = {
+            'login': login,
+            'username': username,
             'uptime': 'Uptime : {}'.format(runtime),
             'km_walked': '{:,.2f}km walked'.format(distance_travelled),
             'level': 'Level {}'.format(current_level),
